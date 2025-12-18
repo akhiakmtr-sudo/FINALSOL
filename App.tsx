@@ -26,12 +26,15 @@ const App: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
+    // Safety timeout: Never stay loading forever even if network hangs
+    const timeout = setTimeout(() => setIsLoading(false), 3000);
+
     const initApp = async () => {
       try {
-        // 1. Check current session
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
+        // Fix: Use type assertion to access getSession on SupabaseAuthClient
+        const { data: { session } } = await (supabase.auth as any).getSession();
         
-        if (!sessionError && session?.user) {
+        if (session?.user) {
           const { data: profile } = await supabase
             .from('profiles')
             .select('*')
@@ -41,7 +44,7 @@ const App: React.FC = () => {
           if (profile) {
             setUser({
               id: profile.id,
-              name: profile.full_name || session.user.email?.split('@')[0],
+              name: profile.full_name || session.user.email?.split('@')[0] || 'User',
               email: session.user.email!,
               role: profile.role as UserRole,
               avatar: profile.avatar_url
@@ -49,83 +52,41 @@ const App: React.FC = () => {
           }
         }
 
-        // 2. Fetch products
-        const { data: dbProducts, error: prodError } = await supabase
-          .from('products')
-          .select('*');
-        
-        if (dbProducts && !prodError && dbProducts.length > 0) {
+        const { data: dbProducts } = await supabase.from('products').select('*');
+        if (dbProducts && dbProducts.length > 0) {
           setProducts(dbProducts);
         }
       } catch (err) {
-        console.error("Initialization failed, falling back to mock data", err);
+        console.error("ShopncarT: Backend connection issue, using local data.");
       } finally {
         setIsLoading(false);
+        clearTimeout(timeout);
       }
     };
 
     initApp();
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+    // Fix: Use type assertion to access onAuthStateChange on SupabaseAuthClient
+    const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
       if (event === 'SIGNED_IN' && session?.user) {
-        try {
-          const { data: profile } = await supabase
-            .from('profiles')
-            .select('*')
-            .eq('id', session.user.id)
-            .single();
-          
-          setUser({
-            id: session.user.id,
-            name: profile?.full_name || session.user.email?.split('@')[0],
-            email: session.user.email!,
-            role: profile?.role as UserRole || UserRole.USER,
-            avatar: profile?.avatar_url
-          });
-        } catch (e) {
-          console.error("Profile fetch error", e);
-        }
+        const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
+        setUser({
+          id: session.user.id,
+          name: profile?.full_name || session.user.email?.split('@')[0] || 'User',
+          email: session.user.email!,
+          role: (profile?.role as UserRole) || UserRole.USER,
+          avatar: profile?.avatar_url
+        });
       } else if (event === 'SIGNED_OUT') {
         setUser(null);
-        setCurrentPage('HOME');
       }
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+      clearTimeout(timeout);
+    };
   }, []);
-
-  useEffect(() => {
-    if (user) {
-      const fetchOrders = async () => {
-        try {
-          const { data, error } = await supabase
-            .from('orders')
-            .select('*, order_items(*, products(*))')
-            .eq('user_id', user.id)
-            .order('created_at', { ascending: false });
-          
-          if (data && !error) {
-            const mappedOrders: Order[] = data.map(o => ({
-              id: o.id,
-              userId: o.user_id,
-              total: o.total,
-              status: o.status,
-              date: o.created_at,
-              address: o.address,
-              items: (o.order_items || []).map((oi: any) => ({
-                ...(oi.products || {}),
-                quantity: oi.quantity
-              }))
-            }));
-            setOrders(mappedOrders);
-          }
-        } catch (e) {
-          console.error("Orders fetch error", e);
-        }
-      };
-      fetchOrders();
-    }
-  }, [user]);
 
   const addToCart = (product: Product, quantity: number = 1) => {
     setCart(prev => {
@@ -137,18 +98,6 @@ const App: React.FC = () => {
     });
   };
 
-  const removeFromCart = (productId: string) => {
-    setCart(prev => prev.filter(item => item.id !== productId));
-  };
-
-  const updateCartQuantity = (productId: string, quantity: number) => {
-    setCart(prev => prev.map(item => item.id === productId ? { ...item, quantity } : item));
-  };
-
-  const logout = async () => {
-    await supabase.auth.signOut();
-  };
-
   const navigate = (page: AppState, data?: any) => {
     setIsLoading(true);
     setTimeout(() => {
@@ -156,19 +105,20 @@ const App: React.FC = () => {
       setCurrentPage(page);
       setIsLoading(false);
       window.scrollTo(0, 0);
-    }, 400);
+    }, 200);
   };
 
   const filteredProducts = useMemo(() => {
     if (!searchQuery) return products;
+    const q = searchQuery.toLowerCase();
     return products.filter(p => 
-      p.name.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      p.category.toLowerCase().includes(searchQuery.toLowerCase())
+      p.name.toLowerCase().includes(q) || 
+      p.category.toLowerCase().includes(q)
     );
   }, [searchQuery, products]);
 
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col transition-opacity duration-500">
       <Navbar 
         user={user} 
         cartCount={cart.reduce((acc, curr) => acc + curr.quantity, 0)} 
@@ -178,11 +128,8 @@ const App: React.FC = () => {
       
       <main className="flex-grow pt-20">
         {isLoading && (
-          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white">
-            <div className="flex flex-col items-center">
-              <div className="w-16 h-16 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
-              <p className="mt-4 text-indigo-700 font-semibold text-lg">ShopncarT is connecting...</p>
-            </div>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-white/80 backdrop-blur-sm">
+            <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin"></div>
           </div>
         )}
 
@@ -191,27 +138,17 @@ const App: React.FC = () => {
           {currentPage === 'PRODUCT_DETAIL' && selectedProduct && (
             <ProductDetail product={selectedProduct} onAddToCart={addToCart} onBuyNow={(p) => { addToCart(p); navigate('CHECKOUT'); }} />
           )}
-          {currentPage === 'CART' && <Cart cart={cart} updateQuantity={updateCartQuantity} removeItem={removeFromCart} onCheckout={() => navigate('CHECKOUT')} />}
-          {currentPage === 'CHECKOUT' && (
-            <Checkout 
+          {currentPage === 'CART' && (
+            <Cart 
               cart={cart} 
-              user={user} 
-              onComplete={(order) => { 
-                setOrders([order, ...orders]); 
-                setCart([]); 
-                navigate('TRACKING', order); 
-              }} 
+              updateQuantity={(id, q) => setCart(prev => prev.map(i => i.id === id ? {...i, quantity: q} : i))} 
+              removeItem={(id) => setCart(prev => prev.filter(i => i.id !== id))} 
+              onCheckout={() => navigate('CHECKOUT')} 
             />
           )}
-          {currentPage === 'PROFILE' && <Profile user={user} orders={orders} logout={logout} navigate={navigate} />}
-          {currentPage === 'ADMIN' && user?.role === UserRole.ADMIN && (
-            <AdminDashboard 
-              products={products} 
-              setProducts={setProducts} 
-              orders={orders} 
-              setOrders={setOrders}
-            />
-          )}
+          {currentPage === 'CHECKOUT' && <Checkout cart={cart} user={user} onComplete={(o) => { setOrders([o, ...orders]); setCart([]); navigate('TRACKING'); }} />}
+          {currentPage === 'PROFILE' && <Profile user={user} orders={orders} logout={() => (supabase.auth as any).signOut()} navigate={navigate} />}
+          {currentPage === 'ADMIN' && user?.role === UserRole.ADMIN && <AdminDashboard products={products} setProducts={setProducts} orders={orders} setOrders={setOrders} />}
           {currentPage === 'LOGIN' && <Login />}
           {currentPage === 'TRACKING' && <Tracking />}
         </div>

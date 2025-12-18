@@ -26,6 +26,7 @@ const HelpAssistant: React.FC = () => {
     setIsTyping(true);
 
     try {
+      // Fix: Use process.env.API_KEY directly as per guidelines and create instance right before use
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       const response = await ai.models.generateContent({
         model: 'gemini-3-flash-preview',
@@ -88,7 +89,7 @@ const HelpAssistant: React.FC = () => {
               />
               <button 
                 onClick={handleSend}
-                className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition-colors"
+                className="bg-indigo-600 text-white p-2 rounded-full hover:bg-indigo-700 transition-all"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" /></svg>
               </button>

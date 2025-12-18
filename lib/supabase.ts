@@ -1,14 +1,34 @@
 
 import { createClient } from '@supabase/supabase-js';
 
-// Environment variables are provided by the platform
-const supabaseUrl = process.env.SUPABASE_URL || 'https://placeholder.supabase.co';
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY || 'placeholder';
-
-// Create client with error handling for initialization
-export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
+// Helper to safely access process.env in browser without throwing ReferenceError
+const getEnv = (key: string): string | undefined => {
+  try {
+    return (typeof process !== 'undefined' && process.env) ? process.env[key] : undefined;
+  } catch (e) {
+    return undefined;
   }
-});
+};
+
+const supabaseUrl = getEnv('SUPABASE_URL') || 'https://placeholder-project.supabase.co';
+const supabaseAnonKey = getEnv('SUPABASE_ANON_KEY') || 'placeholder-key';
+
+// Check if URL is valid before creating client to prevent initialization crash
+const isValidUrl = (url: string) => {
+  try {
+    new URL(url);
+    return !url.includes('placeholder-project');
+  } catch (e) {
+    return false;
+  }
+};
+
+export const supabase = isValidUrl(supabaseUrl) 
+  ? createClient(supabaseUrl, supabaseAnonKey)
+  : createClient('https://xyz.supabase.co', 'dummy', { // Minimal dummy to prevent import errors
+      auth: { persistSession: false }
+    });
+
+if (!isValidUrl(supabaseUrl)) {
+  console.warn("ShopncarT: Supabase is running in mock mode. Real DB operations will fail.");
+}
