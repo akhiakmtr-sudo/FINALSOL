@@ -1,6 +1,7 @@
 
 import React, { useState } from 'react';
 import { CartItem, User, Order } from '../types';
+import { supabase } from '../lib/supabase';
 
 interface CheckoutProps {
   cart: CartItem[];
@@ -11,23 +12,65 @@ interface CheckoutProps {
 const Checkout: React.FC<CheckoutProps> = ({ cart, user, onComplete }) => {
   const [step, setStep] = useState(1);
   const [address, setAddress] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const total = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (step < 3) {
       setStep(step + 1);
     } else {
-      const newOrder: Order = {
-        id: `ORD-${Math.floor(Math.random() * 100000)}`,
-        userId: user?.id || 'guest',
-        items: [...cart],
-        total,
-        status: 'Pending',
-        date: new Date().toISOString(),
-        address
-      };
-      onComplete(newOrder);
+      if (!user) {
+        alert("Please log in to complete your purchase.");
+        return;
+      }
+      
+      setIsSubmitting(true);
+      try {
+        // 1. Create order
+        const { data: orderData, error: orderError } = await supabase
+          .from('orders')
+          .insert({
+            user_id: user.id,
+            total,
+            status: 'Pending',
+            address
+          })
+          .select()
+          .single();
+
+        if (orderError) throw orderError;
+
+        // 2. Create order items
+        const orderItems = cart.map(item => ({
+          order_id: orderData.id,
+          product_id: item.id,
+          quantity: item.quantity,
+          price: item.price
+        }));
+
+        const { error: itemsError } = await supabase
+          .from('order_items')
+          .insert(orderItems);
+
+        if (itemsError) throw itemsError;
+
+        // 3. Success
+        const newOrder: Order = {
+          id: orderData.id,
+          userId: user.id,
+          items: [...cart],
+          total,
+          status: 'Pending',
+          date: orderData.created_at,
+          address
+        };
+        onComplete(newOrder);
+      } catch (err: any) {
+        alert(`Error placing order: ${err.message}`);
+      } finally {
+        setIsSubmitting(false);
+      }
     }
   };
 
@@ -143,15 +186,17 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, user, onComplete }) => {
                 type="button"
                 onClick={() => setStep(step - 1)}
                 className="px-8 py-3 rounded-xl font-bold text-slate-600 hover:bg-slate-100 transition-all"
+                disabled={isSubmitting}
               >
                 Back
               </button>
             )}
             <button 
               type="submit"
-              className="flex-grow bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg"
+              className="flex-grow bg-indigo-600 text-white px-8 py-4 rounded-xl font-bold hover:bg-indigo-700 transition-all shadow-lg disabled:opacity-50"
+              disabled={isSubmitting}
             >
-              {step === 3 ? 'Confirm & Place Order' : 'Continue to Next Step'}
+              {isSubmitting ? 'Placing Order...' : (step === 3 ? 'Confirm & Place Order' : 'Continue to Next Step')}
             </button>
           </div>
         </form>
