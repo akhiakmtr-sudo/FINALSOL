@@ -110,11 +110,11 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, user, onComplete }) => {
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-600">City</label>
-                  <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="New York" required />
+                  <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="Mumbai" required />
                 </div>
                 <div className="space-y-2">
                   <label className="text-sm font-semibold text-slate-600">Zip Code</label>
-                  <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="10001" required />
+                  <input type="text" className="w-full px-4 py-3 rounded-xl border border-slate-200 focus:ring-2 focus:ring-indigo-500 outline-none" placeholder="400001" required />
                 </div>
               </div>
             </div>
@@ -127,15 +127,15 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, user, onComplete }) => {
                 <div className="p-4 rounded-xl border-2 border-indigo-600 bg-indigo-50 cursor-pointer flex items-center gap-4">
                   <div className="w-6 h-6 rounded-full border-4 border-indigo-600"></div>
                   <div>
-                    <div className="font-bold text-slate-900">Credit / Debit Card</div>
-                    <div className="text-xs text-slate-500">Visa, Mastercard, Amex</div>
+                    <div className="font-bold text-slate-900">UPI / Net Banking</div>
+                    <div className="text-xs text-slate-500">Google Pay, PhonePe, Paytm</div>
                   </div>
                 </div>
                 <div className="p-4 rounded-xl border-2 border-slate-100 bg-slate-50 cursor-pointer opacity-50 flex items-center gap-4">
                   <div className="w-6 h-6 rounded-full border-2 border-slate-300"></div>
                   <div>
-                    <div className="font-bold text-slate-900">PayPal</div>
-                    <div className="text-xs text-slate-500">Fast and secure</div>
+                    <div className="font-bold text-slate-900">Credit / Debit Card</div>
+                    <div className="text-xs text-slate-500">Visa, RuPay, Mastercard</div>
                   </div>
                 </div>
               </div>
@@ -168,12 +168,12 @@ const Checkout: React.FC<CheckoutProps> = ({ cart, user, onComplete }) => {
                 </div>
                 <div className="flex justify-between font-semibold">
                   <span>Payment:</span>
-                  <span>Card ending in 4242</span>
+                  <span>UPI / Card</span>
                 </div>
                 <div className="h-px bg-slate-200"></div>
                 <div className="flex justify-between text-xl font-black">
                   <span>Grand Total:</span>
-                  <span>${total.toFixed(2)}</span>
+                  <span>₹{total.toLocaleString('en-IN')}</span>
                 </div>
               </div>
               <p className="text-slate-500 text-sm">By confirming, you agree to our terms of service and refund policies.</p>

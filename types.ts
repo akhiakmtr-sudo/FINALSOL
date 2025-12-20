@@ -46,4 +46,4 @@ export interface Order {
   address: string;
 }
 
-export type AppState = 'HOME' | 'PRODUCT_DETAIL' | 'CART' | 'CHECKOUT' | 'PROFILE' | 'ADMIN' | 'LOGIN' | 'TRACKING';
+export type AppState = 'HOME' | 'PRODUCT_DETAIL' | 'CART' | 'CHECKOUT' | 'PROFILE' | 'ADMIN' | 'LOGIN' | 'TRACKING' | 'CATEGORY_VIEW';

@@ -11,7 +11,7 @@ interface CartProps {
 
 const Cart: React.FC<CartProps> = ({ cart, updateQuantity, removeItem, onCheckout }) => {
   const subtotal = cart.reduce((acc, curr) => acc + curr.price * curr.quantity, 0);
-  const shipping = subtotal > 500 ? 0 : 25;
+  const shipping = subtotal > 10000 ? 0 : 499;
   const total = subtotal + shipping;
 
   if (cart.length === 0) {
@@ -40,7 +40,7 @@ const Cart: React.FC<CartProps> = ({ cart, updateQuantity, removeItem, onCheckou
               <div className="flex-grow space-y-1">
                 <div className="text-xs font-bold text-indigo-600 uppercase">{item.category}</div>
                 <h3 className="text-lg font-bold text-slate-900 line-clamp-1">{item.name}</h3>
-                <div className="text-xl font-black text-slate-900">${item.price.toFixed(2)}</div>
+                <div className="text-xl font-black text-slate-900">₹{item.price.toLocaleString('en-IN')}</div>
                 <div className="flex items-center gap-4 mt-4">
                   <div className="flex items-center bg-slate-50 rounded-lg overflow-hidden border border-slate-100">
                     <button onClick={() => updateQuantity(item.id, Math.max(1, item.quantity - 1))} className="px-3 py-1 text-slate-500 hover:text-slate-900">-</button>
@@ -54,7 +54,7 @@ const Cart: React.FC<CartProps> = ({ cart, updateQuantity, removeItem, onCheckou
                 </div>
               </div>
               <div className="text-xl font-black text-slate-900 hidden sm:block">
-                ${(item.price * item.quantity).toFixed(2)}
+                ₹{(item.price * item.quantity).toLocaleString('en-IN')}
               </div>
             </div>
           ))}
@@ -67,20 +67,20 @@ const Cart: React.FC<CartProps> = ({ cart, updateQuantity, removeItem, onCheckou
             <div className="space-y-4">
               <div className="flex justify-between text-slate-500">
                 <span>Subtotal</span>
-                <span className="font-bold text-slate-900">${subtotal.toFixed(2)}</span>
+                <span className="font-bold text-slate-900">₹{subtotal.toLocaleString('en-IN')}</span>
               </div>
               <div className="flex justify-between text-slate-500">
                 <span>Shipping</span>
-                <span className="font-bold text-emerald-600">{shipping === 0 ? 'FREE' : `$${shipping.toFixed(2)}`}</span>
+                <span className="font-bold text-emerald-600">{shipping === 0 ? 'FREE' : `₹${shipping.toLocaleString('en-IN')}`}</span>
               </div>
               <div className="flex justify-between text-slate-500">
-                <span>Tax (Estimated)</span>
-                <span className="font-bold text-slate-900">$0.00</span>
+                <span>GST (Incl.)</span>
+                <span className="font-bold text-slate-900">₹0</span>
               </div>
               <div className="h-px bg-slate-100"></div>
               <div className="flex justify-between text-xl font-black text-slate-900">
                 <span>Total</span>
-                <span>${total.toFixed(2)}</span>
+                <span>₹{total.toLocaleString('en-IN')}</span>
               </div>
             </div>
             <button 
@@ -89,9 +89,6 @@ const Cart: React.FC<CartProps> = ({ cart, updateQuantity, removeItem, onCheckou
             >
               Checkout Now
             </button>
-            <div className="flex items-center justify-center gap-4 text-xs text-slate-400">
-              <span className="flex items-center gap-1"><svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20"><path fillRule="evenodd" d="M5 9V7a5 5 0 0110 0v2a2 2 0 012 2v5a2 2 0 01-2 2H5a2 2 0 01-2-2v-5a2 2 0 012-2zm8-2v2H7V7a3 3 0 016 0z" clipRule="evenodd" /></svg> Secure Payment</span>
-            </div>
           </div>
         </div>
       </div>

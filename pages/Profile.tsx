@@ -75,7 +75,7 @@ const Profile: React.FC<ProfileProps> = ({ user, orders, logout, navigate }) => 
                 <div key={order.id} className="bg-white p-6 rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
                   <div className="flex justify-between items-start mb-4">
                     <div>
-                      <div className="font-black text-slate-900">{order.id}</div>
+                      <div className="font-black text-slate-900">ID: {order.id.split('-')[0].toUpperCase()}</div>
                       <div className="text-sm text-slate-400 font-medium">{new Date(order.date).toLocaleDateString()}</div>
                     </div>
                     <span className="px-3 py-1 bg-amber-50 text-amber-600 rounded-full text-[10px] font-black uppercase tracking-widest">{order.status}</span>
@@ -83,13 +83,13 @@ const Profile: React.FC<ProfileProps> = ({ user, orders, logout, navigate }) => 
                   <div className="flex gap-4 mb-6 overflow-x-auto pb-2">
                     {order.items.map((item, idx) => (
                       <div key={idx} className="w-16 h-16 rounded-xl overflow-hidden bg-slate-50 flex-shrink-0">
-                        <img src={item.images[0]} className="w-full h-full object-cover" />
+                        <img src={item.images[0]} className="w-full h-full object-cover" alt={item.name} />
                       </div>
                     ))}
                   </div>
                   <div className="flex justify-between items-center pt-4 border-t border-slate-50">
                     <div className="text-slate-500 text-sm">{order.items.length} items</div>
-                    <div className="font-black text-xl text-slate-900">${order.total.toFixed(2)}</div>
+                    <div className="font-black text-xl text-slate-900">₹{order.total.toLocaleString('en-IN')}</div>
                   </div>
                   <button 
                     onClick={() => navigate('TRACKING')}

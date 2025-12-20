@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { AppState, User, Product, CartItem, Order, UserRole } from './types';
+import { AppState, User, Product, CartItem, Order, UserRole, Category } from './types';
 import { CATEGORIES, INITIAL_PRODUCTS } from './constants';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
@@ -12,6 +12,7 @@ import Profile from './pages/Profile';
 import AdminDashboard from './pages/AdminDashboard';
 import Login from './pages/Login';
 import Tracking from './pages/Tracking';
+import CategoryProducts from './pages/CategoryProducts';
 import HelpAssistant from './components/HelpAssistant';
 import { supabase } from './lib/supabase';
 
@@ -22,16 +23,15 @@ const App: React.FC = () => {
   const [products, setProducts] = useState<Product[]>(INITIAL_PRODUCTS);
   const [orders, setOrders] = useState<Order[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
 
   useEffect(() => {
-    // Safety timeout: Never stay loading forever even if network hangs
     const timeout = setTimeout(() => setIsLoading(false), 3000);
 
     const initApp = async () => {
       try {
-        // Fix: Use type assertion to access getSession on SupabaseAuthClient
         const { data: { session } } = await (supabase.auth as any).getSession();
         
         if (session?.user) {
@@ -66,7 +66,6 @@ const App: React.FC = () => {
 
     initApp();
 
-    // Fix: Use type assertion to access onAuthStateChange on SupabaseAuthClient
     const { data: { subscription } } = (supabase.auth as any).onAuthStateChange(async (event: string, session: any) => {
       if (event === 'SIGNED_IN' && session?.user) {
         const { data: profile } = await supabase.from('profiles').select('*').eq('id', session.user.id).single();
@@ -102,6 +101,7 @@ const App: React.FC = () => {
     setIsLoading(true);
     setTimeout(() => {
       if (page === 'PRODUCT_DETAIL') setSelectedProduct(data);
+      if (page === 'CATEGORY_VIEW') setSelectedCategory(data);
       setCurrentPage(page);
       setIsLoading(false);
       window.scrollTo(0, 0);
@@ -134,7 +134,21 @@ const App: React.FC = () => {
         )}
 
         <div className="container mx-auto px-4 py-8">
-          {currentPage === 'HOME' && <Home products={filteredProducts} navigate={navigate} />}
+          {currentPage === 'HOME' && (
+            <Home 
+              products={filteredProducts} 
+              navigate={navigate} 
+              onAddToCart={addToCart} 
+            />
+          )}
+          {currentPage === 'CATEGORY_VIEW' && selectedCategory && (
+            <CategoryProducts 
+              categoryName={selectedCategory} 
+              products={products.filter(p => p.category === selectedCategory)} 
+              navigate={navigate}
+              onAddToCart={addToCart}
+            />
+          )}
           {currentPage === 'PRODUCT_DETAIL' && selectedProduct && (
             <ProductDetail product={selectedProduct} onAddToCart={addToCart} onBuyNow={(p) => { addToCart(p); navigate('CHECKOUT'); }} />
           )}
